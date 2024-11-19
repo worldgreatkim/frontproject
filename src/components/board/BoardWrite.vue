@@ -52,39 +52,42 @@
             ></v-text-field>
           </div>
 
-          <!-- 에디터 툴바 -->
-          <div class="editor-toolbar mb-2">
-            <v-btn-group>
-              <v-btn density="comfortable" icon @click="insertImage">
-                <v-icon>mdi-image</v-icon>
-              </v-btn>
-              <v-btn density="comfortable" icon @click="formatText('bold')">
-                <v-icon>mdi-format-bold</v-icon>
-              </v-btn>
-              <v-btn density="comfortable" icon @click="formatText('italic')">
-                <v-icon>mdi-format-italic</v-icon>
-              </v-btn>
-            </v-btn-group>
-          </div>
+          <!-- 후기 내용 -->
+          <v-textarea
+            v-model="form.content"
+            label="여행 후기"
+            variant="outlined"
+            class="mb-4"
+            placeholder="여행하면서 느낀 점, 추천하고 싶은 장소, 주의사항 등을 자유롭게 작성해주세요."
+            required
+            :rules="[(v) => !!v || '내용을 입력해주세요']"
+            rows="12"
+            counter
+            maxlength="2000"
+          ></v-textarea>
 
-          <!-- 내용 에디터 -->
-          <div
-            ref="editor"
-            class="editor-content mb-4"
-            contenteditable="true"
-            @input="handleEditorInput"
-            @paste="handlePaste"
-          ></div>
-
-          <!-- 숨겨진 파일 입력 -->
-          <input
-            ref="imageInput"
-            type="file"
-            accept="image/*"
-            style="display: none"
-            @change="handleImageSelect"
+          <!-- 사진 업로드 -->
+          <v-file-input
+            v-model="form.images"
+            label="사진 첨부"
+            variant="outlined"
+            class="mb-6"
             multiple
-          />
+            accept="image/*"
+            prepend-icon="mdi-camera"
+            :rules="[(files) => !files || files.length <= 5 || '최대 5장까지 업로드 가능합니다']"
+            hint="여행 사진을 최대 5장까지 첨부할 수 있습니다"
+            persistent-hint
+            show-size
+          >
+            <template v-slot:selection="{ fileNames }">
+              <template v-for="fileName in fileNames" :key="fileName">
+                <v-chip label size="small" class="me-2" color="primary" variant="outlined">
+                  {{ fileName }}
+                </v-chip>
+              </template>
+            </template>
+          </v-file-input>
 
           <!-- 태그 입력 -->
           <v-combobox
@@ -126,47 +129,13 @@ export default {
         startDate: '',
         endDate: '',
         content: '',
+        images: [],
         tags: [],
       },
       locations: ['제주 올레길', '지리산 둘레길', '북한산 둘레길', '설악산 둘레길', '남한산성 둘레길'],
     };
   },
   methods: {
-    insertImage() {
-      this.$refs.imageInput.click();
-    },
-    handleImageSelect(event) {
-      const files = event.target.files;
-      for (let file of files) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const img = document.createElement('img');
-          img.src = e.target.result;
-          img.style.maxWidth = '100%';
-          img.style.height = 'auto';
-          img.style.marginBottom = '1rem';
-          this.$refs.editor.appendChild(img);
-          this.updateContent();
-        };
-        reader.readAsDataURL(file);
-      }
-      event.target.value = ''; // 입력 초기화
-    },
-    formatText(command) {
-      document.execCommand(command, false, null);
-      this.$refs.editor.focus();
-    },
-    handleEditorInput() {
-      this.updateContent();
-    },
-    handlePaste(e) {
-      e.preventDefault();
-      const text = e.clipboardData.getData('text/plain');
-      document.execCommand('insertText', false, text);
-    },
-    updateContent() {
-      this.form.content = this.$refs.editor.innerHTML;
-    },
     async handleSubmit() {
       if (!this.$refs.form.validate()) return;
 
@@ -174,7 +143,7 @@ export default {
 
       try {
         // API 호출 로직
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        await new Promise((resolve) => setTimeout(resolve, 1000)); // 임시 딜레이
 
         // 성공 처리
         this.$router.push('/board');
@@ -194,29 +163,6 @@ export default {
 <style scoped>
 .gap-4 {
   gap: 16px;
-}
-
-.editor-toolbar {
-  border: 1px solid #e0e0e0;
-  border-bottom: none;
-  border-top-left-radius: 4px;
-  border-top-right-radius: 4px;
-  padding: 8px;
-  background-color: #f5f5f5;
-}
-
-.editor-content {
-  border: 1px solid #e0e0e0;
-  border-radius: 4px;
-  min-height: 300px;
-  padding: 16px;
-  overflow-y: auto;
-  background-color: white;
-}
-
-.editor-content:focus {
-  outline: none;
-  border-color: var(--v-primary-base);
 }
 
 :deep(.v-text-field .v-input__details) {

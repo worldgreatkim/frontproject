@@ -2,7 +2,7 @@
   <v-app-bar app fixed flat color="white" elevation="1">
     <v-container class="d-flex align-center">
       <router-link to="/" class="text-decoration-none">
-        <v-toolbar-title class="logo">길벗누리</v-toolbar-title>
+        <v-toolbar-title class="logo" src>길벗누리</v-toolbar-title>
       </router-link>
 
       <v-spacer></v-spacer>
@@ -106,7 +106,7 @@ export default {
 .logo {
   font-weight: bold;
   font-size: 1.5rem;
-  color: var(--v-primary-base);
+  color: black;
 }
 
 .v-btn {

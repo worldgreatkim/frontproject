@@ -5,6 +5,7 @@
       <v-container fluid class="hero-section">
         <v-row align="center" justify="space-between" class="mx-auto" style="max-width: 1200px">
           <!-- 텍스트 컨텐츠 -->
+
           <v-col cols="12" md="6" class="text-content">
             <h1 class="text-h2 font-weight-bold mb-4">새로운 여행 플래너</h1>
             <p class="text-subtitle-1 mb-6 grey--text text--darken-1">전국의 다양한 둘레길을 둘러보세요</p>
@@ -17,7 +18,7 @@
           <!-- 이미지 섹션 -->
           <v-col cols="12" md="6" class="d-flex justify-center align-center">
             <v-img
-              src="https://picsum.photos/800/600"
+              src="../assets/길벗누리.png"
               alt="Travel Planning"
               max-width="100%"
               class="hero-image rounded-lg"
