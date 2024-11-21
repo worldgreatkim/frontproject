@@ -1,171 +1,481 @@
 <template>
-  <v-container class="py-8">
-    <v-card class="mx-auto" max-width="900px" elevation="3">
-      <v-card-title class="text-h5 font-weight-bold pa-6 pb-0">
-        여행 후기 작성
-        <v-divider class="mt-4"></v-divider>
-      </v-card-title>
+  <div class="editor-container">
+    <!-- 제목 -->
+    <div class="board-header">
+      <input
+        v-model="title"
+        type="text"
+        placeholder="후기 제목을 입력해주세요"
+        class="title-input"
+      />
+    </div>
 
-      <v-card-text class="pa-6">
-        <v-form ref="form" v-model="isFormValid">
-          <!-- 여행지 선택 -->
-          <v-select
-            v-model="form.location"
-            :items="locations"
-            label="여행지 선택"
-            variant="outlined"
-            class="mb-4"
-            required
-            :rules="[(v) => !!v || '여행지를 선택해주세요']"
-          ></v-select>
+    <!-- 별점 -->
+    <div class="rating-section">
+      <span class="rating-text">별점을 선택해주세요</span>
+      <div class="stars">
+        <span
+          v-for="n in 5"
+          :key="n"
+          class="star"
+          :class="{ 'star-filled': rating >= n }"
+          @click="setRating(n)"
+        >
+          ★
+        </span>
+      </div>
+    </div>
 
-          <!-- 제목 -->
-          <v-text-field
-            v-model="form.title"
-            label="제목"
-            variant="outlined"
-            class="mb-4"
-            placeholder="제목을 입력해주세요"
-            required
-            :rules="[(v) => !!v || '제목을 입력해주세요']"
-            counter="100"
-            maxlength="100"
-          ></v-text-field>
+    <!-- 에디터 -->
+    <div
+      ref="editor"
+      class="editor"
+      contenteditable="true"
+      @input="handleEditorInput"
+      :placeholder="'둘레길 후기를 작성해주세요...'"
+    ></div>
 
-          <!-- 여행 날짜 -->
-          <div class="d-flex gap-4 mb-4">
-            <v-text-field
-              v-model="form.startDate"
-              label="여행 시작일"
-              type="date"
-              variant="outlined"
-              required
-              :rules="[(v) => !!v || '여행 시작일을 선택해주세요']"
-            ></v-text-field>
-            <v-text-field
-              v-model="form.endDate"
-              label="여행 종료일"
-              type="date"
-              variant="outlined"
-              required
-              :rules="[(v) => !!v || '여행 종료일을 선택해주세요']"
-            ></v-text-field>
-          </div>
+    <!-- 이미지 업로드 -->
+    <div class="upload-section">
+      <input
+        ref="fileInput"
+        type="file"
+        accept="image/*"
+        multiple
+        @change="handleImageUpload"
+        style="display: none"
+      />
+      <button @click="triggerFileInput" class="upload-button">
+        이미지 추가 ({{ imageCount }}/5)
+      </button>
+    </div>
 
-          <!-- 후기 내용 -->
-          <v-textarea
-            v-model="form.content"
-            label="여행 후기"
-            variant="outlined"
-            class="mb-4"
-            placeholder="여행하면서 느낀 점, 추천하고 싶은 장소, 주의사항 등을 자유롭게 작성해주세요."
-            required
-            :rules="[(v) => !!v || '내용을 입력해주세요']"
-            rows="12"
-            counter
-            maxlength="2000"
-          ></v-textarea>
-
-          <!-- 사진 업로드 -->
-          <v-file-input
-            v-model="form.images"
-            label="사진 첨부"
-            variant="outlined"
-            class="mb-6"
-            multiple
-            accept="image/*"
-            prepend-icon="mdi-camera"
-            :rules="[(files) => !files || files.length <= 5 || '최대 5장까지 업로드 가능합니다']"
-            hint="여행 사진을 최대 5장까지 첨부할 수 있습니다"
-            persistent-hint
-            show-size
-          >
-            <template v-slot:selection="{ fileNames }">
-              <template v-for="fileName in fileNames" :key="fileName">
-                <v-chip label size="small" class="me-2" color="primary" variant="outlined">
-                  {{ fileName }}
-                </v-chip>
-              </template>
-            </template>
-          </v-file-input>
-
-          <!-- 태그 입력 -->
-          <v-combobox
-            v-model="form.tags"
-            label="태그 입력"
-            variant="outlined"
-            class="mb-6"
-            multiple
-            chips
-            hint="엔터를 눌러 태그를 추가할 수 있습니다 (최대 5개)"
-            persistent-hint
-            :rules="[(tags) => tags.length <= 5 || '태그는 최대 5개까지 입력 가능합니다']"
-          ></v-combobox>
-
-          <!-- 버튼 그룹 -->
-          <v-card-actions class="px-0 pb-0">
-            <v-spacer></v-spacer>
-            <v-btn color="grey" variant="outlined" @click="goBack" class="mr-2"> 취소 </v-btn>
-            <v-btn color="primary" @click="handleSubmit" :disabled="!isFormValid" :loading="isSubmitting">
-              등록하기
-            </v-btn>
-          </v-card-actions>
-        </v-form>
-      </v-card-text>
-    </v-card>
-  </v-container>
+    <!-- 버튼 그룹 -->
+    <div class="button-group">
+      <button @click="handleCancel" class="cancel-btn">취소</button>
+      <button
+        @click="handleSubmit"
+        :disabled="!isValid || isSubmitting"
+        class="submit-btn"
+      >
+        {{ isSubmitting ? "등록 중..." : "등록하기" }}
+      </button>
+    </div>
+  </div>
 </template>
 
 <script>
+const getResizeHandlers = (imgContainer, editor) => {
+  let isResizing = false;
+  let currentResizer;
+  let originalWidth;
+  let originalHeight;
+  let originalMouseX;
+  let originalMouseY;
+
+  const startResize = (e) => {
+    if (e.target.className.includes("resize-handle")) {
+      isResizing = true;
+      currentResizer = e.target;
+
+      const rect = imgContainer.getBoundingClientRect();
+      originalWidth = rect.width;
+      originalHeight = rect.height;
+      originalMouseX = e.pageX;
+      originalMouseY = e.pageY;
+
+      document.addEventListener("mousemove", resize);
+      document.addEventListener("mouseup", stopResize);
+      e.preventDefault();
+    }
+  };
+
+  const resize = (e) => {
+    if (!isResizing) return;
+
+    const minSize = 100;
+    const maxWidth = editor.clientWidth - 40;
+
+    if (currentResizer.classList.contains("resize-se")) {
+      const width = originalWidth + (e.pageX - originalMouseX);
+      const height = originalHeight + (e.pageY - originalMouseY);
+
+      if (width > minSize && width <= maxWidth) {
+        imgContainer.style.width = `${width}px`;
+      }
+      if (height > minSize) {
+        imgContainer.style.height = `${height}px`;
+      }
+    }
+  };
+
+  const stopResize = () => {
+    isResizing = false;
+    document.removeEventListener("mousemove", resize);
+    document.removeEventListener("mouseup", stopResize);
+  };
+
+  return { startResize };
+};
+
 export default {
-  name: 'BoardWrite',
+  name: "TrailReview",
+
   data() {
     return {
-      isFormValid: false,
+      title: "",
+      content: "",
+      imageCount: 0,
       isSubmitting: false,
-      form: {
-        location: null,
-        title: '',
-        startDate: '',
-        endDate: '',
-        content: '',
-        images: [],
-        tags: [],
-      },
-      locations: ['제주 올레길', '지리산 둘레길', '북한산 둘레길', '설악산 둘레길', '남한산성 둘레길'],
+      rating: 0, // 별점 추가
     };
   },
+
+  computed: {
+    isValid() {
+      return this.title.trim() && this.content.trim() && this.rating > 0;
+    },
+  },
+
   methods: {
+    setRating(value) {
+      this.rating = value;
+    },
+
+    handleEditorInput(e) {
+      this.content = e.target.innerHTML;
+    },
+
+    triggerFileInput() {
+      this.$refs.fileInput.click();
+    },
+
+    initializeResizable(imgContainer) {
+      const resizers = ["nw", "ne", "sw", "se", "n", "s", "e", "w"];
+
+      resizers.forEach((pos) => {
+        const handle = document.createElement("div");
+        handle.className = `resize-handle resize-${pos}`;
+        imgContainer.appendChild(handle);
+      });
+
+      const { startResize } = getResizeHandlers(
+        imgContainer,
+        this.$refs.editor
+      );
+      imgContainer.addEventListener("mousedown", startResize);
+    },
+
+    handleImageUpload(e) {
+      const files = Array.from(e.target.files);
+
+      if (this.imageCount + files.length > 5) {
+        alert("이미지는 최대 5개까지만 첨부 가능합니다.");
+        return;
+      }
+
+      files.forEach((file) => {
+        const reader = new FileReader();
+
+        reader.onload = (e) => {
+          const imgContainer = document.createElement("div");
+          imgContainer.className = "image-container";
+
+          const img = document.createElement("img");
+          img.src = e.target.result;
+          img.className = "uploaded-image";
+
+          img.onload = () => {
+            const maxWidth = this.$refs.editor.clientWidth - 40;
+            const newWidth = Math.min(maxWidth, img.naturalWidth);
+            imgContainer.style.width = newWidth + "px";
+          };
+
+          imgContainer.appendChild(img);
+
+          const deleteBtn = document.createElement("button");
+          deleteBtn.innerHTML = "×";
+          deleteBtn.className = "delete-button";
+          deleteBtn.style.display = "flex";
+          deleteBtn.style.alignItems = "center";
+          deleteBtn.style.justifyContent = "center";
+          deleteBtn.onclick = () => {
+            imgContainer.remove();
+            this.imageCount--;
+          };
+          imgContainer.appendChild(deleteBtn);
+
+          const editor = this.$refs.editor;
+          const p = document.createElement("p");
+          p.appendChild(imgContainer);
+          editor.appendChild(p);
+          this.initializeResizable(imgContainer);
+          this.imageCount++;
+          this.content = editor.innerHTML;
+        };
+
+        reader.readAsDataURL(file);
+      });
+
+      e.target.value = null;
+    },
+
     async handleSubmit() {
-      if (!this.$refs.form.validate()) return;
+      if (!this.isValid) return;
 
       this.isSubmitting = true;
-
       try {
-        // API 호출 로직
-        await new Promise((resolve) => setTimeout(resolve, 1000)); // 임시 딜레이
+        const formData = new FormData();
+        formData.append("title", this.title);
+        formData.append("content", this.content);
+        formData.append("rating", this.rating);
 
-        // 성공 처리
-        this.$router.push('/board');
+        // API 호출
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        this.$router.push("/reviews");
       } catch (error) {
-        console.error('Error submitting post:', error);
+        console.error("Error:", error);
+        alert("후기 등록에 실패했습니다");
       } finally {
         this.isSubmitting = false;
       }
     },
-    goBack() {
-      this.$router.go(-1);
+
+    handleCancel() {
+      if (confirm("작성 중인 내용이 저장되지 않습니다. 취소하시겠습니까?")) {
+        this.$router.back();
+      }
     },
   },
 };
 </script>
 
 <style scoped>
-.gap-4 {
-  gap: 16px;
+.editor-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
 
-:deep(.v-text-field .v-input__details) {
-  padding-inline-start: 16px;
+.title-input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 16px;
+}
+
+.editor {
+  min-height: 500px;
+  padding: 20px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 16px;
+  line-height: 1.6;
+  overflow-y: auto;
+}
+
+.upload-section {
+  position: relative;
+  padding: 20px 0;
+  border-top: 1px solid #eee;
+}
+
+.image-container {
+  position: relative;
+  display: block;
+  margin: 10px 0;
+  width: calc(100% - 40px);
+  max-width: 100%;
+  resize: both;
+  overflow: hidden;
+}
+
+.uploaded-image {
+  width: 100%;
+  height: auto;
+  max-width: 100%;
+  object-fit: contain;
+}
+
+.delete-button {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.5);
+  color: white;
+  border: none;
+  cursor: pointer;
+  z-index: 2;
+}
+
+.resize-handle {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background-color: #007bff;
+  border-radius: 50%;
+}
+
+.resize-nw {
+  top: -5px;
+  left: -5px;
+  cursor: nw-resize;
+}
+.resize-ne {
+  top: -5px;
+  right: -5px;
+  cursor: ne-resize;
+}
+.resize-sw {
+  bottom: -5px;
+  left: -5px;
+  cursor: sw-resize;
+}
+.resize-se {
+  bottom: -5px;
+  right: -5px;
+  cursor: se-resize;
+}
+.resize-n {
+  top: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  cursor: n-resize;
+}
+.resize-s {
+  bottom: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  cursor: s-resize;
+}
+.resize-e {
+  right: -5px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: e-resize;
+}
+.resize-w {
+  left: -5px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: w-resize;
+}
+
+.upload-button {
+  padding: 8px 16px;
+  background-color: #f0f0f0;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.button-group {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.submit-btn {
+  padding: 8px 16px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.submit-btn:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.cancel-btn {
+  padding: 8px 16px;
+  background-color: #f0f0f0;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.editor-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* 별점 스타일 추가 */
+.rating-section {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.rating-text {
+  font-size: 16px;
+  color: #666;
+}
+
+.stars {
+  display: flex;
+  gap: 5px;
+}
+
+.star {
+  font-size: 24px;
+  cursor: pointer;
+  color: #ddd;
+  transition: color 0.2s;
+}
+
+.star:hover,
+.star-filled {
+  color: #ffd700;
+}
+
+.editor {
+  min-height: 500px;
+  padding: 20px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 16px;
+  line-height: 1.6;
+  overflow-y: auto;
+}
+
+.editor:empty:before {
+  content: attr(placeholder);
+  color: #999;
+}
+.delete-button {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 32px;
+  height: 32px;
+  background-color: #ff4444;
+  color: white;
+  border: none;
+  cursor: pointer;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: bold;
+  border-radius: 4px;
+}
+
+.delete-button:hover {
+  background-color: #ff0000;
 }
 </style>

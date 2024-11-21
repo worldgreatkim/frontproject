@@ -14,7 +14,7 @@
           여행지
         </v-btn>
 
-        <v-btn v-if="!isAuthenticated" text class="mx-2" to="/support">
+        <v-btn text class="mx-2" to="/support">
           <v-icon left>mdi-help-circle</v-icon>
           고객지원
         </v-btn>
@@ -44,11 +44,19 @@
 
       <!-- 로그인 상태 -->
       <template v-else>
-        <v-menu v-model="menu" :close-on-content-click="false" location="bottom end" offset="5">
+        <v-menu
+          v-model="menu"
+          :close-on-content-click="false"
+          location="bottom end"
+          offset="5"
+        >
           <template v-slot:activator="{ props }">
             <v-btn icon v-bind="props" size="large">
               <v-avatar color="primary" size="32">
-                <v-img src="https://cdn.vuetifyjs.com/images/john.jpg" alt="User"></v-img>
+                <v-img
+                  src="https://cdn.vuetifyjs.com/images/john.jpg"
+                  alt="User"
+                ></v-img>
               </v-avatar>
             </v-btn>
           </template>
@@ -71,19 +79,19 @@
 </template>
 
 <script>
-import { ref, inject } from 'vue';
-import { useStore } from 'vuex';
-import { useRouter } from 'vue-router';
-import { computed } from 'vue';
+import { ref, inject } from "vue";
+import { useStore } from "vuex";
+import { useRouter } from "vue-router";
+import { computed } from "vue";
 
 export default {
-  name: 'AppBar',
-  emits: ['openLogin'], // emits 옵션 추가
+  name: "AppBar",
+  emits: ["openLogin"], // emits 옵션 추가
   setup(props, { emit }) {
     // context에서 emit 추출
     const store = useStore();
     const router = useRouter();
-    const showSnackbar = inject('showSnackbar');
+    const showSnackbar = inject("showSnackbar");
     const menu = ref(false);
 
     const isAuthenticated = computed(() => store.getters.isAuthenticated);
@@ -91,27 +99,27 @@ export default {
 
     const handleBoardClick = () => {
       if (!isAuthenticated.value) {
-        alert('게시판에 들어가려면 로그인을 먼저 하세요');
-        emit('openLogin'); // emit 함수 직접 사용
+        alert("게시판에 들어가려면 로그인을 먼저 하세요");
+        emit("openLogin"); // emit 함수 직접 사용
       } else {
-        router.push('/board');
+        router.push("/board");
       }
     };
 
     const handleLogout = async () => {
       try {
-        await store.dispatch('logout');
+        await store.dispatch("logout");
         menu.value = false;
-        router.push('/');
+        router.push("/");
         showSnackbar({
-          text: '로그아웃되었습니다.',
-          color: 'success',
+          text: "로그아웃되었습니다.",
+          color: "success",
         });
       } catch (error) {
-        console.error('Logout failed:', error);
+        console.error("Logout failed:", error);
         showSnackbar({
-          text: '로그아웃 중 오류가 발생했습니다.',
-          color: 'error',
+          text: "로그아웃 중 오류가 발생했습니다.",
+          color: "error",
         });
       }
     };
