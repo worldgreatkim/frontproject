@@ -24,7 +24,6 @@
         cover
       >
         <div class="overlay"></div>
-        <!-- 오버레이 추가 -->
         <v-row class="fill-height" align="center" justify="center">
           <v-col cols="12" md="8">
             <v-card class="mx-auto bg-transparent" flat>
@@ -43,7 +42,43 @@
 </template>
 
 <script>
-// script 부분은 동일하게 유지
+export default {
+  name: 'PostCarousel',
+  data() {
+    return {
+      currentSlide: 0,
+      carouselItems: [
+        {
+          title: '제주 올레길 7코스',
+          description: '아름다운 제주 올레길을 따라서...',
+          image: 'https://picsum.photos/id/11/1920/500',
+        },
+        {
+          title: '지리산 둘레길',
+          description: '지리산의 숨겨진 아름다움을 찾아서...',
+          image: 'https://picsum.photos/id/12/1920/500',
+        },
+        {
+          title: '북한산 둘레길',
+          description: '도심 속 자연을 만나다...',
+          image: 'https://picsum.photos/id/13/1920/500',
+        },
+      ],
+    };
+  },
+  methods: {
+    goToNextSlide(event) {
+      const clickX = event.offsetX;
+      const elementWidth = event.target.offsetWidth;
+
+      if (clickX < elementWidth / 2) {
+        this.currentSlide = (this.currentSlide - 1 + this.carouselItems.length) % this.carouselItems.length;
+      } else {
+        this.currentSlide = (this.currentSlide + 1) % this.carouselItems.length;
+      }
+    },
+  },
+};
 </script>
 
 <style scoped>
@@ -65,7 +100,6 @@
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
 }
 
-/* overlay 스타일 */
 .overlay {
   position: absolute;
   top: 0;
@@ -76,7 +110,6 @@
   pointer-events: none;
 }
 
-/* 캐러셀 아이템 스타일 */
 :deep(.v-carousel-item) {
   width: 100%;
 }
@@ -87,7 +120,6 @@
   object-fit: cover;
 }
 
-/* fade 트랜지션 효과 */
 :deep(.v-carousel .v-window-item) {
   transition: opacity 1s ease-in-out !important;
 }
@@ -107,7 +139,6 @@
   z-index: 0;
 }
 
-/* fade 애니메이션 */
 :deep(.fade-enter-active),
 :deep(.fade-leave-active) {
   transition: opacity 1s ease;
@@ -128,7 +159,6 @@
   opacity: 1;
 }
 
-/* 캐러셀 컨테이너 스타일 */
 :deep(.v-carousel .v-window__container) {
   position: relative;
 }

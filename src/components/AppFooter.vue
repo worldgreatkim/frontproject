@@ -1,12 +1,9 @@
 <template>
   <v-footer app color="grey-lighten-3" class="footer-container">
     <v-container class="py-2">
-      <!-- container의 padding 축소 -->
       <v-row justify="space-between" align="start" class="py-1">
-        <!-- row의 padding 축소 -->
         <!-- 회사 정보 섹션 -->
         <v-col cols="12" md="4" class="py-1">
-          <!-- col의 padding 축소 -->
           <div class="d-flex align-center">
             <h3 class="text-subtitle-1 font-weight-bold mr-4">두루누비</h3>
             <div class="social-icons">
@@ -45,7 +42,6 @@
 
         <!-- 고객 지원 섹션 -->
         <v-col cols="12" md="4" class="py-1 text-right">
-          <!-- 오른쪽 정렬 -->
           <div class="text-caption d-flex justify-end align-center">
             <div class="mr-4">
               <v-icon size="small" color="grey-darken-1" class="mr-1">mdi-phone</v-icon>
@@ -101,7 +97,10 @@ export default {
 
 <style scoped>
 .footer-container {
-  min-height: auto !important; /* 기본 최소 높이 제거 */
+  min-height: auto !important;
+  position: relative;
+  bottom: 0;
+  width: 100%;
 }
 
 .v-list-item {

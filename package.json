@@ -13,9 +13,11 @@
     "@shadcn/ui": "^0.0.4",
     "core-js": "^3.8.3",
     "roboto-fontface": "*",
+    "sortablejs": "^1.15.3",
     "vue": "^3.2.13",
     "vue-router": "^4.4.5",
-    "vuetify": "^3.0.0-beta.0",
+    "vuedraggable": "^2.24.3",
+    "vuetify": "^3.7.4",
     "vuex": "^4.1.0",
     "webfontloader": "^1.0.0"
   },

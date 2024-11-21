@@ -7,23 +7,18 @@
     <v-main>
       <!-- 로그인 모달 -->
       <v-dialog v-model="isLoginModalOpen" persistent max-width="400" overlay-opacity="0.8">
-        <AppLogin @close="closeLoginModal" @switch-to-signup="switchToSignup" />
+        <AppLogin @close="closeLoginModal" />
       </v-dialog>
 
-      <!-- 회원가입 모달 -->
-      <v-dialog v-model="isSignupModalOpen" persistent max-width="400" overlay-opacity="0.8">
-        <AppSignup @close="closeSignupModal" @switch-to-login="switchToLogin" />
-      </v-dialog>
-
-      <!-- 홈페이지 컨텐츠 -->
-      <HomePage v-if="$route.path === '/'" />
-      <router-view v-else></router-view>
+      <!-- 라우터 뷰 -->
+      <router-view></router-view>
 
       <!-- 스낵바 -->
-      <v-snackbar v-model="snackbar.show" :color="snackbar.color" :timeout="3000" location="top right">
+      <v-snackbar v-model="snackbar.show" :color="snackbar.color" :timeout="snackbar.timeout" location="top">
         {{ snackbar.text }}
+
         <template v-slot:actions>
-          <v-btn color="white" variant="text" @click="snackbar.show = false"> 닫기 </v-btn>
+          <v-btn variant="text" @click="snackbar.show = false"> 닫기 </v-btn>
         </template>
       </v-snackbar>
     </v-main>
@@ -33,95 +28,54 @@
   </v-app>
 </template>
 
-<script>
+<script setup>
 import { ref, provide } from 'vue';
 import AppBar from './components/AppBar.vue';
 import AppLogin from './components/login/AppLogin.vue';
 import AppFooter from './components/AppFooter.vue';
-import AppSignup from './components/signup/AppSignup.vue';
-import HomePage from './views/HomePage.vue'; // HomePage import 추가
 
-export default {
-  name: 'App',
-  components: {
-    AppBar,
-    AppLogin,
-    AppFooter,
-    AppSignup,
-    HomePage, // HomePage 컴포넌트 등록
-  },
+// 로그인 모달 상태
+const isLoginModalOpen = ref(false);
 
-  setup() {
-    const snackbar = ref({
-      show: false,
-      text: '',
-      color: 'success',
-    });
+// 스낵바 상태
+const snackbar = ref({
+  show: false,
+  text: '',
+  color: 'success',
+  timeout: 3000,
+});
 
-    const showSnackbar = ({ text, color = 'success' }) => {
-      snackbar.value = {
-        show: true,
-        text,
-        color,
-      };
-    };
-
-    provide('showSnackbar', showSnackbar);
-
-    return {
-      snackbar,
-      showSnackbar,
-    };
-  },
-
-  data() {
-    return {
-      isLoginModalOpen: false,
-      isSignupModalOpen: false,
-    };
-  },
-
-  methods: {
-    openLoginModal() {
-      this.isLoginModalOpen = true;
-      this.isSignupModalOpen = false;
-    },
-
-    closeLoginModal() {
-      this.isLoginModalOpen = false;
-    },
-
-    openSignupModal() {
-      this.isSignupModalOpen = true;
-      this.isLoginModalOpen = false;
-    },
-
-    closeSignupModal() {
-      this.isSignupModalOpen = false;
-    },
-
-    switchToSignup() {
-      this.isLoginModalOpen = false;
-      this.isSignupModalOpen = true;
-    },
-
-    switchToLogin() {
-      this.isSignupModalOpen = false;
-      this.isLoginModalOpen = true;
-    },
-  },
-
-  watch: {
-    $route() {
-      this.isLoginModalOpen = false;
-      this.isSignupModalOpen = false;
-    },
-  },
+// 메서드
+const openLoginModal = () => {
+  isLoginModalOpen.value = true;
 };
+
+const closeLoginModal = () => {
+  isLoginModalOpen.value = false;
+};
+
+// 스낵바 표시 함수
+const showSnackbar = ({ text, color = 'success', timeout = 3000 }) => {
+  snackbar.value = {
+    show: true,
+    text,
+    color,
+    timeout,
+  };
+};
+
+// provide를 사용하여 하위 컴포넌트에서 스낵바 사용 가능하게 함
+provide('showSnackbar', showSnackbar);
+
+// 라우트 변경 시 로그인 모달 닫기
+import { useRouter } from 'vue-router';
+const router = useRouter();
+
+router.afterEach(() => {
+  isLoginModalOpen.value = false;
+});
 </script>
 
 <style>
-.v-application {
-  font-family: 'Roboto', sans-serif;
-}
+/* 전역 스타일이 필요한 경우 여기에 추가 */
 </style>

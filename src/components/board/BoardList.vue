@@ -67,6 +67,8 @@
 
 <script>
 import PostCarousel from '@/components/board/PostCarousel.vue';
+import postsData from '@/data/postsData.js';
+
 export default {
   name: 'BoardList',
   components: {
@@ -74,24 +76,7 @@ export default {
   },
   data() {
     return {
-      posts: [
-        {
-          id: 1,
-          title: '제주 올레길 7코스 후기',
-          author: '올레꾼',
-          createdAt: '2024-03-19',
-          views: 245,
-          commentCount: 15,
-        },
-        {
-          id: 2,
-          title: '지리산 둘레길 2일차 - 아름다운 풍경',
-          author: '산돌이',
-          createdAt: '2024-03-18',
-          views: 182,
-          commentCount: 8,
-        },
-      ],
+      posts: postsData,
       page: 1,
       itemsPerPage: 10,
       searchQuery: '',
@@ -113,6 +98,8 @@ export default {
           return post.title.toLowerCase().includes(query);
         } else if (this.searchType === 'author') {
           return post.author.toLowerCase().includes(query);
+        } else if (this.searchType === 'content') {
+          return post.content && post.content.toLowerCase().includes(query);
         }
         return true;
       });

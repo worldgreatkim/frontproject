@@ -1,6 +1,6 @@
+// router/index.js
 import { createRouter, createWebHistory } from 'vue-router';
 import HomePage from '../views/HomePage.vue';
-import AppTravel from '../views/AppTravel.vue';
 
 const routes = [
   {
@@ -11,7 +11,7 @@ const routes = [
   {
     path: '/travel',
     name: 'Travel',
-    component: AppTravel,
+    component: () => import('../components/travel/TravelPlanner.vue'),
   },
   {
     path: '/login',
@@ -28,6 +28,39 @@ const routes = [
     name: 'BoardWrite',
     component: () => import('@/components/board/BoardWrite.vue'),
   },
+  // 추가된 라우트
+  // router/index.js에 이미 있는 코드
+  {
+    path: '/plan',
+    name: 'Plan',
+    component: () => import('@/views/PlanPage.vue'),
+  },
+  {
+    path: '/reviews',
+    name: 'Reviews',
+    component: () => import('@/views/ReviewsPage.vue'),
+  },
+  {
+    path: '/guide',
+    name: 'Guide',
+    component: () => import('@/views/GuidePage.vue'),
+  },
+  {
+    path: '/terms',
+    name: 'Terms',
+    component: () => import('@/views/TermsPage.vue'),
+  },
+  {
+    path: '/privacy',
+    name: 'Privacy',
+    component: () => import('@/views/PrivacyPage.vue'),
+  },
+  // 404 페이지
+  {
+    path: '/:pathMatch(.*)*',
+    name: 'NotFound',
+    component: () => import('@/views/NotFound.vue'),
+  },
 ];
 
 const router = createRouter({
@@ -36,7 +69,7 @@ const router = createRouter({
 });
 
 router.beforeEach((to, from, next) => {
-  const publicPages = ['/', '/login'];
+  const publicPages = ['/', '/login', '/guide', '/terms', '/privacy'];
   const authRequired = !publicPages.includes(to.path);
   const loggedIn = localStorage.getItem('user');
 

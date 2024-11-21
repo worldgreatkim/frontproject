@@ -14,9 +14,14 @@
           여행지
         </v-btn>
 
-        <v-btn text class="mx-2" to="/support">
+        <v-btn v-if="!isAuthenticated" text class="mx-2" to="/support">
           <v-icon left>mdi-help-circle</v-icon>
           고객지원
+        </v-btn>
+
+        <v-btn v-if="isAuthenticated" text class="mx-2" to="/plan">
+          <v-icon left>mdi-calendar</v-icon>
+          여행계획하기
         </v-btn>
 
         <v-btn text class="mx-2" to="/board">
@@ -63,27 +68,30 @@
 
 <script>
 import { ref, inject } from 'vue';
-import { mapGetters, mapActions } from 'vuex';
+import { useStore } from 'vuex';
+import { computed } from 'vue';
 
 export default {
   name: 'AppBar',
   setup() {
+    const store = useStore();
     const showSnackbar = inject('showSnackbar');
     const menu = ref(false);
+
+    const isAuthenticated = computed(() => store.getters.isAuthenticated);
+    const currentUser = computed(() => store.getters.currentUser);
 
     return {
       showSnackbar,
       menu,
+      isAuthenticated,
+      currentUser,
     };
   },
-  computed: {
-    ...mapGetters(['isAuthenticated', 'currentUser']),
-  },
   methods: {
-    ...mapActions(['logout']),
     async handleLogout() {
       try {
-        await this.logout();
+        await this.$store.dispatch('logout');
         this.menu = false;
         this.$router.push('/');
         this.showSnackbar({

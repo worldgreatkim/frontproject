@@ -5,7 +5,7 @@ import router from './router';
 import store from './store';
 import vuetify from './plugins/vuetify';
 import { loadFonts } from './plugins/webfontloader';
-
+import './assets/pretendardvariable.css'
 loadFonts();
 
 createApp(App).use(store).use(router).use(vuetify).mount('#app');
