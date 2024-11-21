@@ -24,7 +24,7 @@
           여행계획하기
         </v-btn>
 
-        <v-btn text class="mx-2" to="/board">
+        <v-btn text class="mx-2" @click="handleBoardClick">
           <v-icon left>mdi-post</v-icon>
           게시판
         </v-btn>
@@ -78,7 +78,9 @@ import { computed } from 'vue';
 
 export default {
   name: 'AppBar',
-  setup() {
+  emits: ['openLogin'], // emits 옵션 추가
+  setup(props, { emit }) {
+    // context에서 emit 추출
     const store = useStore();
     const router = useRouter();
     const showSnackbar = inject('showSnackbar');
@@ -87,7 +89,15 @@ export default {
     const isAuthenticated = computed(() => store.getters.isAuthenticated);
     const currentUser = computed(() => store.getters.currentUser);
 
-    // 로그아웃 핸들러를 setup 내부에서 정의
+    const handleBoardClick = () => {
+      if (!isAuthenticated.value) {
+        alert('게시판에 들어가려면 로그인을 먼저 하세요');
+        emit('openLogin'); // emit 함수 직접 사용
+      } else {
+        router.push('/board');
+      }
+    };
+
     const handleLogout = async () => {
       try {
         await store.dispatch('logout');
@@ -111,7 +121,8 @@ export default {
       menu,
       isAuthenticated,
       currentUser,
-      handleLogout, // 핸들러 반환
+      handleLogout,
+      handleBoardClick,
     };
   },
 };

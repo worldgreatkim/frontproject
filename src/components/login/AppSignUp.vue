@@ -179,6 +179,23 @@ export default {
 </script>
 
 <style scoped>
+.v-card {
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.v-text-field {
+  margin-bottom: 15px;
+}
+
+.v-btn {
+  text-transform: none;
+  letter-spacing: 0;
+}
+
 .close-button {
   position: absolute;
   right: 8px;
@@ -187,5 +204,13 @@ export default {
 
 .position-relative {
   position: relative;
+}
+
+/* 모바일 대응 */
+@media (max-width: 600px) {
+  .v-card {
+    margin: 15px;
+    padding: 15px;
+  }
 }
 </style>
