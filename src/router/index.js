@@ -9,6 +9,11 @@ const routes = [
     component: HomePage,
   },
   {
+    path: '/signup',
+    name: 'Signup',
+    component: () => import('../components/login/AppSignUp.vue'),
+  },
+  {
     path: '/travel',
     name: 'Travel',
     component: () => import('../components/travel/TravelPlanner.vue'),
@@ -69,8 +74,9 @@ const router = createRouter({
 });
 
 router.beforeEach((to, from, next) => {
-  const publicPages = ['/', '/login', '/guide', '/terms', '/privacy'];
-  const authRequired = !publicPages.includes(to.path);
+  const publicPages = ['/', '/login', '/signup', '/guide', '/terms', '/privacy'];
+  //여기에 경로를 추가하지 않으면
+  const authRequired = !publicPages.includes(to.path); //여기에서 로그인 체크 여부를 당하게 된다
   const loggedIn = localStorage.getItem('user');
 
   if (authRequired && !loggedIn) {

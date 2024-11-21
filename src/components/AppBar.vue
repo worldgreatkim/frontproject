@@ -32,6 +32,10 @@
 
       <!-- 비로그인 상태 -->
       <template v-if="!isAuthenticated">
+        <v-btn text class="mx-2" @click="$router.push('/signup')">
+          <v-icon left>mdi-account-plus</v-icon>
+          회원가입
+        </v-btn>
         <v-btn text class="mx-2" @click="$emit('openLogin')">
           <v-icon left>mdi-login</v-icon>
           로그인
@@ -69,43 +73,46 @@
 <script>
 import { ref, inject } from 'vue';
 import { useStore } from 'vuex';
+import { useRouter } from 'vue-router';
 import { computed } from 'vue';
 
 export default {
   name: 'AppBar',
   setup() {
     const store = useStore();
+    const router = useRouter();
     const showSnackbar = inject('showSnackbar');
     const menu = ref(false);
 
     const isAuthenticated = computed(() => store.getters.isAuthenticated);
     const currentUser = computed(() => store.getters.currentUser);
 
-    return {
-      showSnackbar,
-      menu,
-      isAuthenticated,
-      currentUser,
-    };
-  },
-  methods: {
-    async handleLogout() {
+    // 로그아웃 핸들러를 setup 내부에서 정의
+    const handleLogout = async () => {
       try {
-        await this.$store.dispatch('logout');
-        this.menu = false;
-        this.$router.push('/');
-        this.showSnackbar({
+        await store.dispatch('logout');
+        menu.value = false;
+        router.push('/');
+        showSnackbar({
           text: '로그아웃되었습니다.',
           color: 'success',
         });
       } catch (error) {
         console.error('Logout failed:', error);
-        this.showSnackbar({
+        showSnackbar({
           text: '로그아웃 중 오류가 발생했습니다.',
           color: 'error',
         });
       }
-    },
+    };
+
+    return {
+      showSnackbar,
+      menu,
+      isAuthenticated,
+      currentUser,
+      handleLogout, // 핸들러 반환
+    };
   },
 };
 </script>
