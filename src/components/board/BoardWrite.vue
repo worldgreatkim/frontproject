@@ -35,19 +35,29 @@
       :placeholder="'둘레길 후기를 작성해주세요...'"
     ></div>
 
-    <!-- 이미지 업로드 -->
-    <div class="upload-section">
-      <input
-        ref="fileInput"
-        type="file"
-        accept="image/*"
-        multiple
-        @change="handleImageUpload"
-        style="display: none"
-      />
-      <button @click="triggerFileInput" class="upload-button">
-        이미지 추가 ({{ imageCount }}/5)
-      </button>
+    <!-- 드래그 앤 드롭 영역 -->
+    <div
+      class="dropzone"
+      @dragover.prevent="handleDragOver"
+      @dragleave.prevent="handleDragLeave"
+      @drop.prevent="handleDrop"
+      :class="{ 'dropzone-active': isDragging }"
+    >
+      <div class="dropzone-content">
+        <span class="dropzone-text">이미지를 여기에 드래그하세요</span>
+        <span class="dropzone-subtext">또는</span>
+        <input
+          ref="fileInput"
+          type="file"
+          accept="image/*"
+          multiple
+          @change="handleImageUpload"
+          style="display: none"
+        />
+        <button @click="triggerFileInput" class="upload-button">
+          이미지 추가 ({{ imageCount }}/5)
+        </button>
+      </div>
     </div>
 
     <!-- 버튼 그룹 -->
@@ -127,7 +137,9 @@ export default {
       content: "",
       imageCount: 0,
       isSubmitting: false,
-      rating: 0, // 별점 추가
+      rating: 0,
+      isDragging: false,
+      maxImageSize: 800,
     };
   },
 
@@ -150,6 +162,94 @@ export default {
       this.$refs.fileInput.click();
     },
 
+    handleDragOver() {
+      this.isDragging = true;
+    },
+
+    handleDragLeave() {
+      this.isDragging = false;
+    },
+
+    handleDrop(e) {
+      this.isDragging = false;
+      const files = Array.from(e.dataTransfer.files).filter((file) =>
+        file.type.startsWith("image/")
+      );
+      this.processImageFiles(files);
+    },
+
+    processImageFiles(files) {
+      if (this.imageCount + files.length > 5) {
+        alert("이미지는 최대 5개까지만 첨부 가능합니다.");
+        return;
+      }
+
+      files.forEach((file) => this.processImage(file));
+    },
+
+    processImage(file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const resizedImage = this.resizeImage(img);
+          this.addImageToEditor(resizedImage);
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    },
+
+    resizeImage(img) {
+      const canvas = document.createElement("canvas");
+      let width = img.width;
+      let height = img.height;
+
+      if (width > this.maxImageSize || height > this.maxImageSize) {
+        if (width > height) {
+          height = (height / width) * this.maxImageSize;
+          width = this.maxImageSize;
+        } else {
+          width = (width / height) * this.maxImageSize;
+          height = this.maxImageSize;
+        }
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, width, height);
+      return canvas.toDataURL("image/jpeg", 0.9);
+    },
+
+    addImageToEditor(imageData) {
+      const imgContainer = document.createElement("div");
+      imgContainer.className = "image-container";
+
+      const img = document.createElement("img");
+      img.src = imageData;
+      img.className = "uploaded-image";
+
+      const deleteBtn = document.createElement("button");
+      deleteBtn.innerHTML = "×";
+      deleteBtn.className = "delete-button";
+      deleteBtn.onclick = () => {
+        imgContainer.remove();
+        this.imageCount--;
+      };
+
+      imgContainer.appendChild(img);
+      imgContainer.appendChild(deleteBtn);
+
+      const editor = this.$refs.editor;
+      const p = document.createElement("p");
+      p.appendChild(imgContainer);
+      editor.appendChild(p);
+      this.initializeResizable(imgContainer);
+      this.imageCount++;
+      this.content = editor.innerHTML;
+    },
+
     initializeResizable(imgContainer) {
       const resizers = ["nw", "ne", "sw", "se", "n", "s", "e", "w"];
 
@@ -168,55 +268,7 @@ export default {
 
     handleImageUpload(e) {
       const files = Array.from(e.target.files);
-
-      if (this.imageCount + files.length > 5) {
-        alert("이미지는 최대 5개까지만 첨부 가능합니다.");
-        return;
-      }
-
-      files.forEach((file) => {
-        const reader = new FileReader();
-
-        reader.onload = (e) => {
-          const imgContainer = document.createElement("div");
-          imgContainer.className = "image-container";
-
-          const img = document.createElement("img");
-          img.src = e.target.result;
-          img.className = "uploaded-image";
-
-          img.onload = () => {
-            const maxWidth = this.$refs.editor.clientWidth - 40;
-            const newWidth = Math.min(maxWidth, img.naturalWidth);
-            imgContainer.style.width = newWidth + "px";
-          };
-
-          imgContainer.appendChild(img);
-
-          const deleteBtn = document.createElement("button");
-          deleteBtn.innerHTML = "×";
-          deleteBtn.className = "delete-button";
-          deleteBtn.style.display = "flex";
-          deleteBtn.style.alignItems = "center";
-          deleteBtn.style.justifyContent = "center";
-          deleteBtn.onclick = () => {
-            imgContainer.remove();
-            this.imageCount--;
-          };
-          imgContainer.appendChild(deleteBtn);
-
-          const editor = this.$refs.editor;
-          const p = document.createElement("p");
-          p.appendChild(imgContainer);
-          editor.appendChild(p);
-          this.initializeResizable(imgContainer);
-          this.imageCount++;
-          this.content = editor.innerHTML;
-        };
-
-        reader.readAsDataURL(file);
-      });
-
+      this.processImageFiles(files);
       e.target.value = null;
     },
 
@@ -230,7 +282,6 @@ export default {
         formData.append("content", this.content);
         formData.append("rating", this.rating);
 
-        // API 호출
         await new Promise((resolve) => setTimeout(resolve, 1000));
         this.$router.push("/reviews");
       } catch (error) {
@@ -268,6 +319,34 @@ export default {
   font-size: 16px;
 }
 
+.rating-section {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.rating-text {
+  font-size: 16px;
+  color: #666;
+}
+
+.stars {
+  display: flex;
+  gap: 5px;
+}
+
+.star {
+  font-size: 24px;
+  cursor: pointer;
+  color: #ddd;
+  transition: color 0.2s;
+}
+
+.star:hover,
+.star-filled {
+  color: #ffd700;
+}
+
 .editor {
   min-height: 500px;
   padding: 20px;
@@ -278,10 +357,40 @@ export default {
   overflow-y: auto;
 }
 
-.upload-section {
-  position: relative;
-  padding: 20px 0;
-  border-top: 1px solid #eee;
+.editor:empty:before {
+  content: attr(placeholder);
+  color: #999;
+}
+
+.dropzone {
+  border: 2px dashed #ddd;
+  border-radius: 4px;
+  padding: 20px;
+  text-align: center;
+  transition: all 0.3s ease;
+  background: #f8f8f8;
+}
+
+.dropzone-active {
+  border-color: #007bff;
+  background: #f0f7ff;
+}
+
+.dropzone-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.dropzone-text {
+  font-size: 16px;
+  color: #666;
+}
+
+.dropzone-subtext {
+  font-size: 14px;
+  color: #999;
 }
 
 .image-container {
@@ -303,16 +412,25 @@ export default {
 
 .delete-button {
   position: absolute;
-  top: 5px;
-  right: 5px;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: rgba(0, 0, 0, 0.5);
+  top: 10px;
+  right: 10px;
+  width: 32px;
+  height: 32px;
+  background-color: #ff4444;
   color: white;
   border: none;
   cursor: pointer;
   z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: bold;
+  border-radius: 4px;
+}
+
+.delete-button:hover {
+  background-color: #ff0000;
 }
 
 .resize-handle {
@@ -402,80 +520,5 @@ export default {
   border: 1px solid #ddd;
   border-radius: 4px;
   cursor: pointer;
-}
-
-.editor-container {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-/* 별점 스타일 추가 */
-.rating-section {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.rating-text {
-  font-size: 16px;
-  color: #666;
-}
-
-.stars {
-  display: flex;
-  gap: 5px;
-}
-
-.star {
-  font-size: 24px;
-  cursor: pointer;
-  color: #ddd;
-  transition: color 0.2s;
-}
-
-.star:hover,
-.star-filled {
-  color: #ffd700;
-}
-
-.editor {
-  min-height: 500px;
-  padding: 20px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 16px;
-  line-height: 1.6;
-  overflow-y: auto;
-}
-
-.editor:empty:before {
-  content: attr(placeholder);
-  color: #999;
-}
-.delete-button {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  width: 32px;
-  height: 32px;
-  background-color: #ff4444;
-  color: white;
-  border: none;
-  cursor: pointer;
-  z-index: 2;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 20px;
-  font-weight: bold;
-  border-radius: 4px;
-}
-
-.delete-button:hover {
-  background-color: #ff0000;
 }
 </style>
