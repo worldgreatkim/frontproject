@@ -1,6 +1,5 @@
 <template>
   <v-container>
-    <!-- 캐러셀 추가 -->
     <PostCarousel class="mb-8" />
     <v-row>
       <v-col cols="12">
@@ -9,15 +8,15 @@
         <!-- 검색 및 필터링 -->
         <v-row class="mb-4">
           <v-col cols="12" sm="4">
-            <v-select v-model="searchType" :items="searchTypes" label="검색 유형" density="compact"></v-select>
+            <v-select v-model="param.searchType" :items="searchTypes" label="검색 유형" density="compact"></v-select>
           </v-col>
           <v-col cols="12" sm="8">
             <v-text-field
-              v-model="searchQuery"
+              v-model="param.searchQuery"
               label="검색어를 입력하세요"
               append-inner-icon="mdi-magnify"
               density="compact"
-              @keyup.enter="search"
+              @keyup.enter="getArticles"
             ></v-text-field>
           </v-col>
         </v-row>
@@ -35,99 +34,97 @@
           </thead>
           <tbody>
             <tr
-              v-for="post in displayedPosts"
-              :key="post.id"
-              @click="viewPost(post.id)"
+              v-for="article in articles"
+              :key="article.articleNo"
+              @click="viewArticle(article.articleNo)"
               style="cursor: pointer"
               class="post-row"
             >
-              <td class="text-center">{{ post.id }}</td>
-              <td>
-                {{ post.title }}
-                <span v-if="post.commentCount > 0" class="text-primary"> [{{ post.commentCount }}] </span>
-              </td>
-              <td>{{ post.author }}</td>
-              <td>{{ formatDate(post.createdAt) }}</td>
-              <td class="text-center">{{ post.views }}</td>
+              <td class="text-center">{{ article.articleNo }}</td>
+              <td>{{ article.subject }}</td>
+              <td>{{ article.userName }}</td>
+              <td>{{ formatDate(article.registerTime) }}</td>
+              <td class="text-center">{{ article.hit }}</td>
             </tr>
           </tbody>
         </v-table>
 
         <!-- 페이지네이션 -->
         <div class="d-flex justify-center mt-6">
-          <v-pagination v-model="page" :length="totalPages" :total-visible="7" rounded="circle"></v-pagination>
+          <v-pagination
+            v-model="param.pgno"
+            :length="totalPages"
+            :total-visible="7"
+            @update:model-value="getArticles"
+            rounded="circle"
+          ></v-pagination>
         </div>
 
         <!-- 글쓰기 버튼 -->
-        <v-btn color="primary" class="mt-4" prepend-icon="mdi-pencil" @click="writePost"> 글쓰기 </v-btn>
+        <v-btn color="primary" class="mt-4" prepend-icon="mdi-pencil" @click="moveWrite"> 글쓰기 </v-btn>
       </v-col>
     </v-row>
   </v-container>
 </template>
 
-<script>
-import PostCarousel from '@/components/board/PostCarousel.vue';
-import postsData from '@/data/postsData.js';
+<script setup>
+import { ref, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
+import { listArticle } from '@/api/board';
+import PostCarousel from './PostCarousel.vue';
 
-export default {
-  name: 'BoardList',
-  components: {
-    PostCarousel,
-  },
-  data() {
-    return {
-      posts: postsData,
-      page: 1,
-      itemsPerPage: 10,
-      searchQuery: '',
-      searchType: 'title',
-      searchTypes: [
-        { title: '제목', value: 'title' },
-        { title: '작성자', value: 'author' },
-        { title: '내용', value: 'content' },
-      ],
-    };
-  },
-  computed: {
-    filteredPosts() {
-      if (!this.searchQuery) return this.posts;
+const router = useRouter();
+const articles = ref([]);
 
-      const query = this.searchQuery.toLowerCase();
-      return this.posts.filter((post) => {
-        if (this.searchType === 'title') {
-          return post.title.toLowerCase().includes(query);
-        } else if (this.searchType === 'author') {
-          return post.author.toLowerCase().includes(query);
-        } else if (this.searchType === 'content') {
-          return post.content && post.content.toLowerCase().includes(query);
-        }
-        return true;
-      });
+const param = ref({
+  pgno: 1,
+  spp: 20,
+  searchType: 'subject',
+  searchQuery: '',
+});
+
+const searchTypes = [
+  { title: '제목', value: 'subject' },
+  { title: '작성자', value: 'userName' },
+  { title: '내용', value: 'content' },
+];
+
+const totalPages = ref(1);
+
+const getArticles = () => {
+  listArticle(
+    param.value,
+    ({ data }) => {
+      articles.value = data;
+      // 백엔드에서 총 페이지 수를 받아온다고 가정
+      // totalPages.value = data.totalPages
     },
-    totalPages() {
-      return Math.ceil(this.filteredPosts.length / this.itemsPerPage);
-    },
-    displayedPosts() {
-      const start = (this.page - 1) * this.itemsPerPage;
-      const end = start + this.itemsPerPage;
-      return this.filteredPosts.slice(start, end);
-    },
-  },
-  methods: {
-    formatDate(date) {
-      return new Date(date).toLocaleDateString('ko-KR');
-    },
-    search() {
-      this.page = 1;
-    },
-    viewPost(id) {
-      this.$router.push(`/board/${id}`);
-    },
-    writePost() {
-      this.$router.push('/board/write');
-    },
-  },
+    (error) => {
+      console.error('게시글 목록 조회 실패:', error);
+    }
+  );
 };
+
+const viewArticle = (articleNo) => {
+  router.push({
+    name: 'article-detail',
+    params: { articleno: articleNo },
+  });
+};
+
+const moveWrite = () => {
+  router.push({ name: 'article-write' });
+};
+
+const formatDate = (dateString) => {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  return date.toLocaleDateString('ko-KR');
+};
+
+onMounted(() => {
+  getArticles();
+});
 </script>
 
 <style scoped>
