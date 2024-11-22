@@ -63,77 +63,114 @@ export default {
       return trails.value.filter((trail) => trail.name.toLowerCase().includes(searchQuery.value.toLowerCase()));
     });
 
+    const initKakaoMap = () => {
+      try {
+        const container = document.getElementById('map');
+        if (!container) {
+          throw new Error('지도 컨테이너를 찾을 수 없습니다.');
+        }
+
+        const options = {
+          center: new window.kakao.maps.LatLng(33.450701, 126.570667),
+          level: 9,
+        };
+
+        map.value = new window.kakao.maps.Map(container, options);
+
+        // 지도 컨트롤 추가
+        const zoomControl = new window.kakao.maps.ZoomControl();
+        map.value.addControl(zoomControl, window.kakao.maps.ControlPosition.RIGHT);
+
+        console.log('지도 초기화 성공');
+      } catch (error) {
+        console.error('지도 초기화 실패:', error);
+        alert('지도 초기화에 실패했습니다. 페이지를 새로고침해주세요.');
+      }
+    };
+
     const selectTrail = (trail) => {
       if (!selectedTrails.value.includes(trail)) {
         selectedTrails.value.push(trail);
-        moveToLocation(trail); // 새로 추가된 위치로 지도 이동
+        moveToLocation(trail);
       }
     };
 
     const moveToLocation = (trail) => {
-      const newCenter = new window.kakao.maps.LatLng(trail.lat, trail.lng);
-      map.value.setCenter(newCenter);
+      try {
+        if (!map.value) {
+          console.error('지도가 초기화되지 않았습니다.');
+          return;
+        }
+        const newCenter = new window.kakao.maps.LatLng(trail.lat, trail.lng);
+        map.value.setCenter(newCenter);
+      } catch (error) {
+        console.error('위치 이동 실패:', error);
+      }
     };
 
     const updateMap = () => {
-      // Clear existing markers
-      markers.value.forEach((marker) => marker.setMap(null));
-      markers.value = [];
+      try {
+        if (!map.value) return;
 
-      // Clear existing polylines
-      if (polylines.value) {
-        polylines.value.setMap(null);
-      }
+        // Clear existing markers
+        markers.value.forEach((marker) => marker.setMap(null));
+        markers.value = [];
 
-      // Add new markers for selected trails
-      selectedTrails.value.forEach((trail, idx) => {
-        const markerPosition = new window.kakao.maps.LatLng(trail.lat, trail.lng);
-        const marker = new window.kakao.maps.Marker({
-          position: markerPosition,
-        });
-        const label = new window.kakao.maps.CustomOverlay({
-          position: markerPosition,
-          content: `<div style="background-color: #007bff; color: white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 12px;">${
-            idx + 1
-          }</div>`,
-        });
-        marker.setMap(map.value);
-        label.setMap(map.value);
-        markers.value.push(marker);
-      });
+        // Clear existing polylines
+        if (polylines.value) {
+          polylines.value.setMap(null);
+        }
 
-      // Draw polyline connecting selected trails
-      if (selectedTrails.value.length > 1) {
-        const linePath = selectedTrails.value.map((trail) => new window.kakao.maps.LatLng(trail.lat, trail.lng));
-        polylines.value = new window.kakao.maps.Polyline({
-          path: linePath,
-          strokeWeight: 4,
-          strokeColor: '#007bff',
-          strokeOpacity: 0.8,
-          strokeStyle: 'solid',
+        // Add new markers for selected trails
+        selectedTrails.value.forEach((trail, idx) => {
+          const markerPosition = new window.kakao.maps.LatLng(trail.lat, trail.lng);
+          const marker = new window.kakao.maps.Marker({
+            position: markerPosition,
+          });
+          const label = new window.kakao.maps.CustomOverlay({
+            position: markerPosition,
+            content: `<div style="background-color: #007bff; color: white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 12px;">${
+              idx + 1
+            }</div>`,
+          });
+          marker.setMap(map.value);
+          label.setMap(map.value);
+          markers.value.push(marker);
         });
-        polylines.value.setMap(map.value);
+
+        // Draw polyline connecting selected trails
+        if (selectedTrails.value.length > 1) {
+          const linePath = selectedTrails.value.map((trail) => new window.kakao.maps.LatLng(trail.lat, trail.lng));
+          polylines.value = new window.kakao.maps.Polyline({
+            path: linePath,
+            strokeWeight: 4,
+            strokeColor: '#007bff',
+            strokeOpacity: 0.8,
+            strokeStyle: 'solid',
+          });
+          polylines.value.setMap(map.value);
+        }
+      } catch (error) {
+        console.error('지도 업데이트 실패:', error);
       }
     };
 
     onMounted(() => {
-      // Load Kakao Maps JavaScript API
       const script = document.createElement('script');
-      script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=f6c418eb4436b545e5fdb79fe4c4e71e&autoload=false`;
-      script.onload = () => {
-        console.log('Kakao Maps API 스크립트 로드 완료');
-        window.kakao.maps.load(() => {
-          console.log('Kakao Maps API 로드 완료');
-          // Initialize Kakao map
-          const container = document.getElementById('map');
-          if (container) {
-            const options = {
-              center: new window.kakao.maps.LatLng(33.450701, 126.570667),
-              level: 9,
-            };
-            map.value = new window.kakao.maps.Map(container, options);
+      const apiKey = 'f6c418eb4436b545e5fdb79fe4c4e71e';
+      script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${apiKey}&autoload=false`;
+      script.onerror = (error) => {
+        console.error('Kakao Maps API 로드 실패:', error);
+        alert('지도 로드에 실패했습니다. 잠시 후 다시 시도해주세요.');
+      };
 
-            // Watch for changes in selectedTrails and update markers and polylines
+      script.onload = () => {
+        try {
+          console.log('Kakao Maps API 스크립트 로드 완료');
+          window.kakao.maps.load(() => {
+            console.log('Kakao Maps API 로드 완료');
+            initKakaoMap();
+
             watch(
               selectedTrails,
               () => {
@@ -142,33 +179,41 @@ export default {
               { deep: true }
             );
 
-            // Initialize SortableJS
-            Sortable.create(sortableList.value, {
-              handle: '.drag-handle',
-              animation: 150,
-              onEnd: () => {
-                updateSelectedTrailsOrder();
-              },
-            });
-          } else {
-            console.error('지도 컨테이너를 찾을 수 없습니다.');
-          }
-        });
+            if (sortableList.value) {
+              Sortable.create(sortableList.value, {
+                handle: '.drag-handle',
+                animation: 150,
+                onEnd: () => {
+                  updateSelectedTrailsOrder();
+                },
+              });
+            }
+          });
+        } catch (error) {
+          console.error('Kakao Maps 초기화 실패:', error);
+        }
       };
+
       document.head.appendChild(script);
     });
 
     const updateSelectedTrailsOrder = () => {
-      const updatedTrails = [];
-      sortableList.value.querySelectorAll('.selected-trail-item').forEach((item) => {
-        const trailName = item.querySelector('h4').innerText;
-        const trail = selectedTrails.value.find((t) => t.name === trailName);
-        if (trail) {
-          updatedTrails.push(trail);
-        }
-      });
-      selectedTrails.value = updatedTrails;
-      updateMap(); // Update the map after reordering
+      try {
+        if (!sortableList.value) return;
+
+        const updatedTrails = [];
+        sortableList.value.querySelectorAll('.selected-trail-item').forEach((item) => {
+          const trailName = item.querySelector('h4').innerText;
+          const trail = selectedTrails.value.find((t) => t.name === trailName);
+          if (trail) {
+            updatedTrails.push(trail);
+          }
+        });
+        selectedTrails.value = updatedTrails;
+        updateMap();
+      } catch (error) {
+        console.error('선택된 장소 순서 업데이트 실패:', error);
+      }
     };
 
     return {
@@ -190,28 +235,28 @@ html,
 body {
   height: 100%;
   margin: 0;
-  overflow: hidden; /* 스크롤 제거 */
+  overflow: hidden;
 }
 
 .no-scroll {
   height: 100%;
-  overflow: hidden; /* 스크롤 제거 */
+  overflow: hidden;
 }
 
 .data-sidebar {
-  max-height: 100vh; /* 왼쪽 영역 전체 높이 */
-  overflow-y: auto; /* 높이를 넘어갈 경우 스크롤 생성 */
+  max-height: 100vh;
+  overflow-y: auto;
 }
 
 .selected-sidebar {
-  max-height: 100vh; /* 오른쪽 선택 영역 전체 높이 */
-  overflow-y: auto; /* 높이를 넘어갈 경우 스크롤 생성 */
+  max-height: 100vh;
+  overflow-y: auto;
 }
 
 .map-container {
-  height: 100vh; /* 화면 오른쪽 절반을 가득 채우는 지도 */
+  height: 100vh;
   width: 100%;
-  background-color: lightgray; /* 임시 배경색 추가 */
+  background-color: lightgray;
 }
 
 .selected-trail-list {

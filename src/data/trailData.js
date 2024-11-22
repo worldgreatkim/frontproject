@@ -1,10 +1,17 @@
 const trailData = [
-  { name: '성산 일출봉', description: '제주도 동쪽에 위치한 아름다운 해돋이 명소입니다.', lat: 33.4607, lng: 126.9436 },
+  {
+    name: '성산 일출봉',
+    description: '제주도 동쪽에 위치한 아름다운 해돋이 명소입니다.',
+    lat: 33.4607,
+    lng: 126.9436,
+    imageUrl: '/images/seongsan-sunrise.jpg',
+  },
   {
     name: '섭지코지',
     description: '드라마 촬영지로 유명한 해안 경치가 아름다운 곳입니다.',
     lat: 33.4239,
     lng: 126.9291,
+    imageUrl: '/images/seopjikoji.jpg',
   },
   {
     name: '협재 해변',

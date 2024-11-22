@@ -12,6 +12,7 @@
     "@mdi/js": "^7.4.47",
     "@shadcn/ui": "^0.0.4",
     "@tinymce/tinymce-vue": "^5.1.1",
+    "axios": "^1.7.7",
     "core-js": "^3.8.3",
     "roboto-fontface": "*",
     "sortablejs": "^1.15.3",
