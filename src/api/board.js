@@ -1,31 +1,51 @@
-// src/api/board.js
-import { localAxios } from '@/util/http-common';
+import { localAxios } from "@/util/http-commons";
 
 const local = localAxios();
 
+// 게시글 목록 조회
 function listArticle(param, success, fail) {
-  local.get(`/board`, { params: param }).then(success).catch(fail);
+  local.get(`/boards`, { params: param }).then(success).catch(fail);
 }
 
-function detailArticle(articleno, success, fail) {
-  local.get(`/board/${articleno}`).then(success).catch(fail);
+// 게시글 상세 조회
+function detailArticle(id, success, fail) {
+  local.get(`/boards/${id}`).then(success).catch(fail);
 }
 
+// 게시글 작성
 function registArticle(article, success, fail) {
-  console.log('boardjs article', article);
-  local.post(`/board`, JSON.stringify(article)).then(success).catch(fail);
+  local.post(`/boards`, article).then(success).catch(fail);
 }
 
-function getModifyArticle(articleno, success, fail) {
-  local.get(`/board/modify/${articleno}`).then(success).catch(fail);
+// GET 요청 - 수정할 게시글 조회
+function getModifyArticle(id, success, fail) {
+  local.get(`/boards/modify/${id}`).then(success).catch(fail);
 }
 
+// POST 요청 - 게시글 수정
 function modifyArticle(article, success, fail) {
-  local.put(`/board`, JSON.stringify(article)).then(success).catch(fail);
+  const token = JSON.parse(localStorage.getItem("user")).token;
+  local.post(`/boards/modify/${article.id}`, article, {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  })
+  .then(success)
+  .catch(fail);
 }
 
-function deleteArticle(articleno, success, fail) {
-  local.delete(`/board/${articleno}`).then(success).catch(fail);
+// 게시글 삭제
+function deleteArticle(id, success, fail) {
+  local.delete(`/boards/${id}`)
+    .then(success)
+    .catch(fail);
 }
 
-export { listArticle, detailArticle, registArticle, getModifyArticle, modifyArticle, deleteArticle };
+export {
+  listArticle,
+  detailArticle,
+  registArticle,
+  getModifyArticle,
+  modifyArticle,
+  deleteArticle,
+};
