@@ -1,5 +1,20 @@
+// src/router/index.js
 import { createRouter, createWebHistory } from "vue-router";
+import { storeToRefs } from "pinia";
+import { useMemberStore } from "@/store/member";
 import HomePage from "../views/HomePage.vue";
+
+const onlyAuthUser = async (to, from, next) => {
+  const memberStore = useMemberStore();
+  const { isLogin } = storeToRefs(memberStore);
+  
+  if (isLogin.value) {
+    next();
+  } else {
+    alert("로그인이 필요한 페이지입니다.");
+    next({ name: "Login" });
+  }
+};
 
 const routes = [
   {
@@ -17,34 +32,38 @@ const routes = [
     name: "Login",
     component: () => import("../components/login/AppLogin.vue"),
   },
- 
   {
     path: "/travel",
     name: "Travel",
     component: () => import("../components/travel/TravelPlanner.vue"),
+    beforeEnter: onlyAuthUser
   },
   {
     path: "/plan",
     name: "Plan",
     component: () => import("@/views/PlanPage.vue"),
+    beforeEnter: onlyAuthUser,
   },
   {
     path: "/reviews",
     name: "Reviews",
     component: () => import("@/views/ReviewsPage.vue"),
+    beforeEnter: onlyAuthUser,
   },
   {
     path: "/board",
     name: "Board",
     component: () => import("../components/board/BoardList.vue"),
+    beforeEnter: onlyAuthUser
   },
   {
     path: "/board/write",
     name: "BoardWrite",
     component: () => import("@/components/board/BoardWrite.vue"),
+    beforeEnter: onlyAuthUser,
   },
   {
-    path: "/board/:id",  // /boards/:id에서 /board/:id로 변경
+    path: "/board/:id",
     name: "article-detail",
     component: () => import("@/components/board/BoardDetail.vue"),
   },
@@ -52,6 +71,7 @@ const routes = [
     path: "/board/modify/:id",
     name: "article-modify",
     component: () => import("@/components/board/BoardModify.vue"),
+    beforeEnter: onlyAuthUser,
   },
   {
     path: "/guide",
@@ -88,23 +108,39 @@ const router = createRouter({
   routes,
 });
 
-router.beforeEach((to, from, next) => {
-  const publicPages = ["/", 
-  "/login", 
-  "/signup", 
-  "/guide", 
-  "/terms", 
-  "/privacy", 
-  "/board",
-  "/board/:id"];
+// 전역 네비게이션 가드
+router.beforeEach(async (to, from, next) => {
+  const memberStore = useMemberStore();
+  const { isValidToken } = storeToRefs(memberStore);
+  const { checkToken } = memberStore;
+
+  const publicPages = [
+    "/",
+    "/login",
+    "/signup",
+    "/guide",
+    "/terms",
+    "/privacy",
+    "/board",
+    "/board/:id"
+  ];
   const authRequired = !publicPages.includes(to.path);
-  const loggedIn = localStorage.getItem("user");
-
-  if (authRequired && !loggedIn) {
-    return next("/login");
+  
+  if (authRequired) {
+    const token = sessionStorage.getItem("accessToken");
+    if (token) {
+      await checkToken();
+      if (isValidToken.value) {
+        next();
+      } else {
+        next("/login");
+      }
+    } else {
+      next("/login");
+    }
+  } else {
+    next();
   }
-
-  next();
 });
 
 export default router;

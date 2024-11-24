@@ -9,7 +9,7 @@
 
       <!-- 메인 네비게이션 -->
       <div class="d-none d-md-flex">
-        <v-btn text class="mx-2" to="/travel">
+        <v-btn text class="mx-2" @click="handleTravelClick">
           <v-icon left>mdi-airplane</v-icon>
           여행지
         </v-btn>
@@ -80,35 +80,43 @@
 
 <script>
 import { ref, inject } from "vue";
-import { useStore } from "vuex";
 import { useRouter } from "vue-router";
 import { computed } from "vue";
+import { useMemberStore } from "@/store/member";
 
 export default {
   name: "AppBar",
-  emits: ["openLogin"], // emits 옵션 추가
-  setup(props, { emit }) {
-    // context에서 emit 추출
-    const store = useStore();
+  emits: ["openLogin"],
+  setup() {
+    const memberStore = useMemberStore();
     const router = useRouter();
     const showSnackbar = inject("showSnackbar");
     const menu = ref(false);
 
-    const isAuthenticated = computed(() => store.getters.isAuthenticated);
-    const currentUser = computed(() => store.getters.currentUser);
+    const isAuthenticated = computed(() => memberStore.isLogin);
+    const currentUser = computed(() => memberStore.userInfo);
 
     const handleBoardClick = () => {
       if (!isAuthenticated.value) {
-        alert("게시판에 들어가려면 로그인을 먼저 하세요");
-        emit("openLogin"); // emit 함수 직접 사용
+        alert("게시판에 접근하려면 로그인이 필요합니다.");
+        router.push("/login");
       } else {
         router.push("/board");
       }
     };
 
+    const handleTravelClick = () => {
+      if (!isAuthenticated.value) {
+        alert("여행지 페이지에 접근하려면 로그인이 필요합니다.");
+        router.push("/login");
+      } else {
+        router.push("/travel");
+      }
+    };
+
     const handleLogout = async () => {
       try {
-        await store.dispatch("logout");
+        await memberStore.userLogout();
         menu.value = false;
         router.push("/");
         showSnackbar({
@@ -131,6 +139,7 @@ export default {
       currentUser,
       handleLogout,
       handleBoardClick,
+      handleTravelClick, // handleTravelClick 추가
     };
   },
 };

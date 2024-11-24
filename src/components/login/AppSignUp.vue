@@ -1,3 +1,4 @@
+```vue
 <template>
   <v-card class="pa-4">
     <v-card-title class="text-h5 text-center position-relative">
@@ -102,20 +103,20 @@
 <script>
 import { ref, inject } from 'vue';
 import { useRouter } from 'vue-router';
-import { useStore } from 'vuex';
+import { useMemberStore } from '@/store/member';
 
 export default {
   setup() {
     const form = ref(null);
     const showSnackbar = inject('showSnackbar');
     const router = useRouter();
-    const store = useStore();
+    const memberStore = useMemberStore();
 
     return {
       form,
       showSnackbar,
       router,
-      store,
+      memberStore,
     };
   },
 
@@ -138,38 +139,37 @@ export default {
     close() {
       this.$emit('close');
     },
-
     async handleSignup() {
-      if (!this.form?.validate()) return;
+  if (!this.form?.validate()) return;
 
-      this.loading = true;
-      this.error = null;
+  this.loading = true;
+  this.error = null;
 
-      try {
-        await this.store.dispatch('signup', this.formData);
+  try {
+    await this.memberStore.userSignup(this.formData);
 
-        // 회원가입 성공 후 자동 로그인
-        await this.store.dispatch('login', {
-          loginId: this.formData.loginId,
-          password: this.formData.password,
-        });
+    // login -> userLogin로 메서드 이름 변경
+    await this.memberStore.userLogin({
+      loginId: this.formData.loginId,
+      password: this.formData.password,
+    });
 
-        this.showSnackbar({
-          text: '회원가입이 완료되었습니다.',
-          color: 'success',
-        });
+    this.showSnackbar({
+      text: '회원가입이 완료되었습니다.',
+      color: 'success',
+    });
 
-        this.router.push('/');
-      } catch (err) {
-        this.error = '회원가입 중 오류가 발생했습니다.';
-        this.showSnackbar({
-          text: '회원가입 중 오류가 발생했습니다.',
-          color: 'error',
-        });
-      } finally {
-        this.loading = false;
-      }
-    },
+    this.router.push('/');
+  } catch (err) {
+    this.error = err.message || '회원가입 중 오류가 발생했습니다.';
+    this.showSnackbar({
+      text: this.error,
+      color: 'error',
+    });
+  } finally {
+    this.loading = false;
+  }
+},
 
     goToLogin() {
       this.router.push('/login');
@@ -214,3 +214,11 @@ export default {
   }
 }
 </style>
+```
+
+주요 변경사항:
+1. useStore(Vuex) 대신 useMemberStore(Pinia) import 및 사용
+2. store.dispatch() 대신 memberStore의 메서드 직접 호출
+3. 에러 처리 개선 (서버 에러 메시지 표시)
+
+이제 이 컴포넌트는 Pinia store를 사용하여 회원가입과 자동 로그인 기능을 처리.

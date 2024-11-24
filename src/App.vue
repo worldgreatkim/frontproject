@@ -14,7 +14,12 @@
       <router-view></router-view>
 
       <!-- 스낵바 -->
-      <v-snackbar v-model="snackbar.show" :color="snackbar.color" :timeout="snackbar.timeout" location="top">
+      <v-snackbar
+        v-model="snackbar.show"
+        :color="snackbar.color"
+        :timeout="snackbar.timeout"
+        location="top"
+      >
         {{ snackbar.text }}
 
         <template v-slot:actions>
@@ -29,10 +34,15 @@
 </template>
 
 <script setup>
-import { ref, provide } from 'vue';
+import { ref, provide, onMounted } from 'vue';  // onMounted 추가
+import { useRouter } from 'vue-router';
+import { useMemberStore } from '@/store/member';
 import AppBar from './components/AppBar.vue';
 import AppLogin from './components/login/AppLogin.vue';
 import AppFooter from './components/AppFooter.vue';
+
+const router = useRouter();
+const memberStore = useMemberStore();
 
 // 로그인 모달 상태
 const isLoginModalOpen = ref(false);
@@ -43,6 +53,18 @@ const snackbar = ref({
   text: '',
   color: 'success',
   timeout: 3000,
+});
+
+// 자동 로그인 처리
+onMounted(async () => {
+  const token = sessionStorage.getItem("accessToken");
+  if (token) {
+    try {
+      await memberStore.checkToken();
+    } catch (error) {
+      console.error('자동 로그인 실패:', error);
+    }
+  }
 });
 
 // 메서드
@@ -68,9 +90,6 @@ const showSnackbar = ({ text, color = 'success', timeout = 3000 }) => {
 provide('showSnackbar', showSnackbar);
 
 // 라우트 변경 시 로그인 모달 닫기
-import { useRouter } from 'vue-router';
-const router = useRouter();
-
 router.afterEach(() => {
   isLoginModalOpen.value = false;
 });
