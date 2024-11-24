@@ -1,10 +1,12 @@
+// store/member.js
 import { ref } from "vue";
-import { useRouter } from "vue-router"; // useRouter import 추가
+import { useRouter } from "vue-router";
 import { defineStore } from "pinia";
-import { jwtDecode } from "jwt-decode"; // jwtDecode import 추가
+import { jwtDecode } from "jwt-decode";
 import { localAxios } from "@/util/http-commons";
-import { TOKEN_TYPE, setToken, removeAllTokens, getToken } from "@/util/auth"; // getToken import 추가
+import { TOKEN_TYPE, setToken, removeAllTokens, getToken } from "@/util/auth";
 import { httpStatusCode } from "@/util/http-status";
+
 export const useMemberStore = defineStore("memberStore", () => {
   const router = useRouter();
   const local = localAxios();
@@ -39,11 +41,17 @@ export const useMemberStore = defineStore("memberStore", () => {
         isLogin.value = true;
         isLoginError.value = false;
         isValidToken.value = true;
+        
+        // 사용자 정보 설정
+        if (data.userInfo) {
+          userInfo.value = data.userInfo;
+        }
+        
         return true;
       }
       return false;
     } catch (error) {
-      console.log("로그인 실패!!!!");
+      console.error("로그인 실패:", error);
       isLogin.value = false;
       isLoginError.value = true;
       isValidToken.value = false;
@@ -95,37 +103,44 @@ export const useMemberStore = defineStore("memberStore", () => {
     }
   };
 
- // userLogout 함수 내에서 사용
- const userLogout = async () => {
-  try {
-    if (!userInfo.value?.userId) {
-      // 사용자 정보가 없어도 로그아웃 처리
+  const userLogout = async () => {
+    try {
+      if (!userInfo.value?.userId) {
+        removeAllTokens();
+        isLogin.value = false;
+        userInfo.value = null;
+        isValidToken.value = false;
+        return true;
+      }
+      
+      const response = await local.get(`/user/logout/${userInfo.value.userId}`);
+      if (response.status === httpStatusCode.OK) {
+        removeAllTokens();
+        isLogin.value = false;
+        userInfo.value = null;
+        isValidToken.value = false;
+        return true;
+      }
+      return false;
+    } catch (error) {
       removeAllTokens();
       isLogin.value = false;
       userInfo.value = null;
       isValidToken.value = false;
+      console.error(error);
       return true;
     }
-    
-    const response = await local.get(`/user/logout/${userInfo.value.userId}`);
-    if (response.status === httpStatusCode.OK) {
-      removeAllTokens();
-      isLogin.value = false;
-      userInfo.value = null;
-      isValidToken.value = false;
+  };
+
+  const checkLoginState = () => {
+    const token = getToken(TOKEN_TYPE.ACCESS);
+    if (token) {
+      isLogin.value = true;
       return true;
     }
-    return false;
-  } catch (error) {
-    // 에러가 발생해도 로그아웃 처리
-    removeAllTokens();
     isLogin.value = false;
-    userInfo.value = null;
-    isValidToken.value = false;
-    console.error(error);
-    return true;
-  }
-};
+    return false;
+  };
 
   return {
     isLogin,
@@ -137,5 +152,6 @@ export const useMemberStore = defineStore("memberStore", () => {
     getUserInfo,
     tokenRegenerate,
     userLogout,
+    checkLoginState
   };
 });

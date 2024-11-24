@@ -6,7 +6,12 @@
     <!-- 메인 컨텐츠 -->
     <v-main>
       <!-- 로그인 모달 -->
-      <v-dialog v-model="isLoginModalOpen" persistent max-width="400" overlay-opacity="0.8">
+      <v-dialog 
+        v-model="isLoginModalOpen" 
+        persistent 
+        max-width="400" 
+        overlay-opacity="0.8"
+      >
         <AppLogin @close="closeLoginModal" />
       </v-dialog>
 
@@ -23,7 +28,7 @@
         {{ snackbar.text }}
 
         <template v-slot:actions>
-          <v-btn variant="text" @click="snackbar.show = false"> 닫기 </v-btn>
+          <v-btn variant="text" @click="snackbar.show = false">닫기</v-btn>
         </template>
       </v-snackbar>
     </v-main>
@@ -34,9 +39,10 @@
 </template>
 
 <script setup>
-import { ref, provide, onMounted } from 'vue';  // onMounted 추가
+import { ref, provide, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useMemberStore } from '@/store/member';
+import { TOKEN_TYPE } from '@/util/auth';  // TOKEN_TYPE import 추가
 import AppBar from './components/AppBar.vue';
 import AppLogin from './components/login/AppLogin.vue';
 import AppFooter from './components/AppFooter.vue';
@@ -57,16 +63,25 @@ const snackbar = ref({
 
 // 자동 로그인 처리
 onMounted(async () => {
-  const token = sessionStorage.getItem("accessToken");
-  if (token) {
-    try {
-      await memberStore.checkToken();
-    } catch (error) {
-      console.error('자동 로그인 실패:', error);
+  try {
+    const accessToken = sessionStorage.getItem(TOKEN_TYPE.ACCESS);
+    if (accessToken) {
+      const isValid = await memberStore.checkLoginState();
+      if (isValid) {
+        showSnackbar({
+          text: '자동 로그인되었습니다.',
+          color: 'success'
+        });
+      }
     }
+  } catch (error) {
+    console.error('자동 로그인 실패:', error);
+    showSnackbar({
+      text: '자동 로그인에 실패했습니다.',
+      color: 'error'
+    });
   }
 });
-
 // 메서드
 const openLoginModal = () => {
   isLoginModalOpen.value = true;
@@ -95,6 +110,15 @@ router.afterEach(() => {
 });
 </script>
 
-<style>
-/* 전역 스타일이 필요한 경우 여기에 추가 */
+<style scoped>
+/* 필요한 경우 여기에 스타일 추가 */
+.v-application {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.v-main {
+  flex-grow: 1;
+}
 </style>

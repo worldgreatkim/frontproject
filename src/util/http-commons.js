@@ -1,21 +1,19 @@
 import axios from "axios";
-import { httpStatusCode } from "./http-status";
-import { getToken, TOKEN_TYPE } from "./auth";
-import router from "@/router";
 
-const API_BASE_URL = import.meta.env?.VITE_VUE_API_URL || 'http://localhost:8080';
-
-function localAxios() {
+const localAxios = () => {
   const instance = axios.create({
-    baseURL: API_BASE_URL,
+    baseURL: process.env.VUE_APP_API_URL || "http://localhost:8080",
     headers: {
       "Content-Type": "application/json;charset=utf-8",
     },
   });
 
+  // Request 인터셉터 추가
   instance.interceptors.request.use(
     (config) => {
-      const token = getToken(TOKEN_TYPE.ACCESS);
+      const token = localStorage.getItem("user")
+        ? JSON.parse(localStorage.getItem("user")).token
+        : null;
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
@@ -26,27 +24,29 @@ function localAxios() {
     }
   );
 
+  // Response 인터셉터 추가
   instance.interceptors.response.use(
     (response) => {
       return response;
     },
     async (error) => {
       const originalRequest = error.config;
-
-      if (error.response?.status === httpStatusCode.UNAUTHORIZED && !originalRequest._retry) {
+      if (error.response.status === 401 && !originalRequest._retry) {
         originalRequest._retry = true;
         try {
-          const refreshToken = getToken(TOKEN_TYPE.REFRESH);
-          const response = await instance.post("/user/refresh", { refreshToken });
-
-          if (response.data.result?.accessToken) {
-            const newAccessToken = response.data.result.accessToken;
-            sessionStorage.setItem("accessToken", newAccessToken);
-            originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
-            return instance(originalRequest);
-          }
+          const user = JSON.parse(localStorage.getItem("user"));
+          const response = await instance.post("/auth/refresh", {
+            refreshToken: user.refreshToken
+          });
+          const newToken = response.data.token;
+          const updatedUser = { ...user, token: newToken };
+          localStorage.setItem("user", JSON.stringify(updatedUser));
+          originalRequest.headers.Authorization = `Bearer ${newToken}`;
+          return instance(originalRequest);
         } catch (refreshError) {
-          router.push({ name: "login" });
+          localStorage.removeItem("user");
+          window.location.href = "/login";
+          return Promise.reject(refreshError);
         }
       }
       return Promise.reject(error);
@@ -54,6 +54,6 @@ function localAxios() {
   );
 
   return instance;
-}
+};
 
 export { localAxios };

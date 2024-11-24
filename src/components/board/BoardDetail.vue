@@ -72,13 +72,17 @@ const getArticle = () => {
     ({ data }) => {
       if (data.isSuccess) {
         article.value = data.result;
+      } else if (data.code === 'TOKEN4001') {
+        alert('로그인이 필요합니다.');
+        router.push('/login');
       } else {
-        alert('게시글을 불러오는데 실패했습니다.');
+        alert(data.message || '게시글을 불러오는데 실패했습니다.');
       }
     },
     (error) => {
       console.error('게시글 조회 실패:', error);
-      alert('게시글을 불러오는데 실패했습니다.');
+      alert('게시글 조회에 실패했습니다.');
+      router.push({ name: 'Board' });
     }
   );
 };
